@@ -20,4 +20,5 @@
         "120",
     ],
     "python.analysis.autoImportCompletions": true,
+    "gitlens.ai.experimental.openai.model": "gpt-3.5-turbo",
 }

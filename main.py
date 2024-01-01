@@ -1,5 +1,6 @@
 from math import exp
 import os
+from typing import Any
 from click import group
 from dotenv import load_dotenv
 from splitwise import Splitwise
@@ -37,31 +38,46 @@ def get_all_expenses_from_group(splitwise_obj: Splitwise, group_id: int):
     return expenses
 
 
-def save_as_csv(expenses):
-    pass
+def save_as_csv(expenses: list[dict[str, Any]], file_name="expenses.csv"):
+    """
+    Save the expenses to a CSV file.
+
+    Args:
+        expenses (list[dict[str, Any]]): A list of expenses to be saved.
+        file_name (str): The name of the CSV file to be saved.
+    """
+    with open(file_name, "w", encoding="utf-8") as f:
+        f.write("id,description,details,cost,created_at,category_name\n")
+        for expense in expenses:
+            f.write(
+                f'"{expense["id"]}","{expense["description"]}","{expense["details"]}","{expense["cost"]}","{expense["created_at"]}","{expense["category_name"]}"\n'
+            )
 
 
-def flatten_expenses(expenses):
-    for expense in expenses:
-        mapped_expense = {}
-        for k, v in expense.__dict__.items():
-            if isinstance(v, Debt):
-                mapped_expense[f"{k}_amount"] = v.amount
-                mapped_expense[f"{k}_currency_code"] = v.currency_code
-                mapped_expense[f"{k}_from_user_id"] = v.from_user_id
-                mapped_expense[f"{k}_to_user_id"] = v.to_user_id
+def flatten_expense(expense):
+    """
+    Flatten the expense object into a dictionary.
 
-            elif isinstance(v, Receipt):
-                continue
-            elif isinstance(v, ExpenseUser):
-                pass
-            elif isinstance(v, User):
-                mapped_expense[f"{k}_id"] = v.id
-                mapped_expense[f"{k}_first_name"] = v.first_name
-                mapped_expense[f"{k}_last_name"] = v.last_name
-                mapped_expense[f"{k}_email"] = v.email
-            else:
-                mapped_expense[k] = v
+    Args:
+        expense (Expense): The expense object to be flattened.
+
+    Returns:
+        dict: A dictionary containing the flattened expense details.
+            - id: The ID of the expense.
+            - description: The description of the expense.
+            - details: The details of the expense.
+            - cost: The cost of the expense.
+            - created_at: The creation date of the expense.
+            - category_name: The name of the expense category.
+    """
+    return {
+        "id": expense.id,
+        "description": expense.description,
+        "details": expense.details,
+        "cost": expense.cost,
+        "created_at": expense.created_at,
+        "category_name": expense.category.name,
+    }
 
 
 if __name__ == "__main__":
@@ -74,16 +90,10 @@ if __name__ == "__main__":
         sys.exit(1)
 
     expenses = get_all_expenses_from_group(splitwise_obj, group_id)
-    for expense in expenses:
-        mapped_expense = {}
-        for k, v in expense.__dict__.items():
-            if isinstance(v, ExpenseUser):
-                mapped_expense.update(v)
-
-    print(expenses[0].__dict__)
+    total = len(expenses)
+    expenses = map(flatten_expense, expenses)
 
     save_as_csv(expenses)
 
-    total = len(list(expenses))
     print(f"Saved {total} expenses to CSV")
     sys.exit(0)
